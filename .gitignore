@@ -1,0 +1,17 @@
+# Virtual Environments
+venv/
+env/
+.venv/
+
+# Compiled Python files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment variables (Secrets/API Keys)
+.env
+
+# OS generated files
+.DS_Store
+Thumbs.db

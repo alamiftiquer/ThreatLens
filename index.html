@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThreatLens | AI Security Scanner</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --safe: #10b981;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        h1 { color: var(--accent); margin-bottom: 0.5rem;}
+        .panel {
+            background-color: var(--panel-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+        }
+        .input-group {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            background-color: #0f172a;
+            color: white;
+            font-size: 1rem;
+        }
+        button {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 8px;
+            background-color: var(--accent);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #2563eb; }
+        
+        /* Results Section */
+        #results { display: none; margin-top: 2rem; border-top: 1px solid #334155; padding-top: 2rem;}
+        .score-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        .HIGH { background-color: rgba(239, 68, 68, 0.2); border: 1px solid var(--danger); color: var(--danger); }
+        .MEDIUM { background-color: rgba(245, 158, 11, 0.2); border: 1px solid var(--warning); color: var(--warning); }
+        .LOW { background-color: rgba(16, 185, 129, 0.2); border: 1px solid var(--safe); color: var(--safe); }
+        
+        .findings-list {
+            background-color: rgba(0,0,0,0.2);
+            padding: 1rem;
+            border-radius: 8px;
+        }
+        .findings-list li { margin-bottom: 0.5rem; color: var(--text-muted); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>ThreatLens</h1>
+        <p>AI-Driven Phishing & Malicious Payload Detector</p>
+    </div>
+
+    <div class="panel">
+        <div class="input-group">
+            <input type="text" id="urlInput" placeholder="Enter URL to scan (e.g., http://suspicious-link.com)">
+            <button onclick="scanURL()" id="scanBtn">Scan URL</button>
+        </div>
+
+        <div id="loading" style="display: none; text-align: center; color: var(--text-muted);">
+            Analyzing threat intelligence data...
+        </div>
+
+        <div id="results">
+            <div id="scoreCard" class="score-card">
+                <span id="riskText">Risk Level: </span>
+                <span id="scoreText">Score: </span>
+            </div>
+            
+            <h3>Heuristic Findings</h3>
+            <ul id="findingsList" class="findings-list"></ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function scanURL() {
+        const urlInput = document.getElementById('urlInput').value;
+        if (!urlInput) return alert("Please enter a URL");
+
+        // UI Updates
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('results').style.display = 'none';
+        document.getElementById('scanBtn').disabled = true;
+
+        try {
+            const response = await fetch('/api/scan_url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: urlInput })
+            });
+
+            const data = await response.json();
+            
+            if (data.error) {
+                alert("Error: " + data.error);
+                return;
+            }
+
+            // Populate Results
+            const scoreCard = document.getElementById('scoreCard');
+            scoreCard.className = `score-card ${data.risk_level}`;
+            document.getElementById('riskText').innerText = `Risk Level: ${data.risk_level}`;
+            document.getElementById('scoreText').innerText = `Threat Score: ${data.final_threat_score}/100`;
+
+            const findingsList = document.getElementById('findingsList');
+            findingsList.innerHTML = '';
+            
+            if (data.heuristics.findings.length === 0) {
+                findingsList.innerHTML = '<li>No suspicious structural elements found.</li>';
+            } else {
+                data.heuristics.findings.forEach(finding => {
+                    const li = document.createElement('li');
+                    li.innerText = finding;
+                    findingsList.appendChild(li);
+                });
+            }
+
+            document.getElementById('results').style.display = 'block';
+
+        } catch (err) {
+            console.error(err);
+            alert("Failed to connect to the server.");
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('scanBtn').disabled = false;
+        }
+    }
+</script>
+
+</body>
+</html>
